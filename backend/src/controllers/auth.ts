@@ -87,3 +87,8 @@ export async function login(req: Request, res: Response) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function logout(req: Request, res: Response) {
+  res.clearCookie("accessToken", cookieOptions);
+  res.json({ message: "Logged out" });
+}
