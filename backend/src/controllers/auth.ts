@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { cookieOptions, signAccessToken } from "../lib/jwt";
+import { AuthRequest } from "../middleware/requireAuth";
 
 export async function register(req: Request, res: Response) {
   try {
@@ -91,4 +92,24 @@ export async function login(req: Request, res: Response) {
 export async function logout(req: Request, res: Response) {
   res.clearCookie("accessToken", cookieOptions);
   res.json({ message: "Logged out" });
+}
+
+// Returns the currently authenticated user's data — used by the frontend on app load to restore the session automatically.
+export async function me(req: AuthRequest, res: Response) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true, name: true, email: true, createdAt: true },
+    });
+
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return;
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error("[ME]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 }
