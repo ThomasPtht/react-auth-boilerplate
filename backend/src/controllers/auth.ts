@@ -33,16 +33,57 @@ export async function register(req: Request, res: Response) {
       data: { name, email, password: hashed },
     });
 
-    const token = signAccessToken({ userId: user.id, email: user.email})
-    res.cookie('accessToken', token, cookieOptions)
+    const token = signAccessToken({ userId: user.id, email: user.email });
+    res.cookie("accessToken", token, cookieOptions);
 
     res.status(201).json({
-        message: 'Account created', 
-        user: {id: user.id, name: user.name, email: user.email, createdAt: user.createdAt}
-    })
-
+      message: "Account created",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
   } catch (error) {
     console.error("[REGISTER]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function login(req: Request, res: Response) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ message: " All fields are required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(401).json({ message: "Invalid credentials" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      res.status(401).json({ message: "Invalid ccredentials" });
+    }
+
+    const token = signAccessToken({ userId: user.id, email: user.email });
+    res.cookie("accessToken", token, cookieOptions);
+    res.json({
+      message: "Loggedin",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("[LOGIN]", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
